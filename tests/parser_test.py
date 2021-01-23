@@ -42,3 +42,12 @@ class ParserTest(TestCase):
         expected_names: List[str] = ['x', 'y', 'foo']
 
         self.assertEqual(names, expected_names)
+
+    def test_parse_errors(self) -> None:
+        source: str = 'let x 5;'
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse_program()
+
+        self.assertEqual(len(parser.errors), 1)
