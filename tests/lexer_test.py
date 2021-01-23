@@ -88,3 +88,59 @@ class LexerTest(TestCase):
         ]
 
         self.assertEqual(tokens, expected_tokens)
+
+    def test_function_declaration(self) -> None:
+        source: str = '''
+            let sum = func(x, y) {
+                x + y;
+            };
+        '''
+        lexer: Lexer = Lexer(source)
+
+        tokens: List[Token] = []
+        for i in range(16):
+            tokens.append(lexer.next_token())
+
+        expected_tokens: List[Token] = [
+            Token(TokenType.LET, 'let'),
+            Token(TokenType.IDENTIFIER, 'sum'),
+            Token(TokenType.ASSIGN, '='),
+            Token(TokenType.FUNCTION, 'func'),
+            Token(TokenType.LPAREN, '('),
+            Token(TokenType.IDENTIFIER, 'x'),
+            Token(TokenType.COMMA, ','),
+            Token(TokenType.IDENTIFIER, 'y'),
+            Token(TokenType.RPAREN, ')'),
+            Token(TokenType.LBRACE, '{'),
+            Token(TokenType.IDENTIFIER, 'x'),
+            Token(TokenType.PLUS, '+'),
+            Token(TokenType.IDENTIFIER, 'y'),
+            Token(TokenType.SEMICOLON, ';'),
+            Token(TokenType.RBRACE, '}'),
+            Token(TokenType.SEMICOLON, ';'),
+        ]
+
+        self.assertEqual(tokens, expected_tokens)
+
+    def test_function_call(self) -> None:
+        source: str = 'let result = sum(dos, tres);'
+        lexer: Lexer = Lexer(source)
+
+        tokens: List[Token] = []
+        for i in range(10):
+            tokens.append(lexer.next_token())
+
+        expected_tokens: List[Token] = [
+            Token(TokenType.LET, 'let'),
+            Token(TokenType.IDENTIFIER, 'result'),
+            Token(TokenType.ASSIGN, '='),
+            Token(TokenType.IDENTIFIER, 'sum'),
+            Token(TokenType.LPAREN, '('),
+            Token(TokenType.IDENTIFIER, 'dos'),
+            Token(TokenType.COMMA, ','),
+            Token(TokenType.IDENTIFIER, 'tres'),
+            Token(TokenType.RPAREN, ')'),
+            Token(TokenType.SEMICOLON, ';'),
+        ]
+
+        self.assertEqual(tokens, expected_tokens)
