@@ -3,7 +3,7 @@ from typing import List, cast
 
 from cantte.lexer import Lexer
 from cantte.parser import Parser
-from cantte.ast import Program, LetStatement, Statement
+from cantte.ast import Program, LetStatement, ReturnStatement
 
 
 class ParserTest(TestCase):
@@ -51,3 +51,18 @@ class ParserTest(TestCase):
         program: Program = parser.parse_program()
 
         self.assertEqual(len(parser.errors), 1)
+
+    def test_return_statement(self) -> None:
+        source: str = '''
+            return 5;
+            return foo;
+        '''
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse_program()
+
+        self.assertEqual(len(program.statements), 2)
+        for statement in program.statements:
+            self.assertEqual(statement.token_literal(), 'return')
+            self.assertIsInstance(statement, ReturnStatement)
