@@ -1,9 +1,9 @@
 from unittest import TestCase
-from typing import List
+from typing import List, cast
 
 from cantte.lexer import Lexer
 from cantte.parser import Parser
-from cantte.ast import Program, LetStatement
+from cantte.ast import Program, LetStatement, Statement
 
 
 class ParserTest(TestCase):
@@ -31,12 +31,14 @@ class ParserTest(TestCase):
 
         self.assertEqual(len(program.statements), 3)
 
-        statements: List[LetStatement] = []
+        names: List[str] = []
         for statement in program.statements:
-            self.assertEqual(statement.token_literal(), 'let')
-            self.assertIsInstance(statement, LetStatement)
-            statements.append(statement)
+            statement = cast(LetStatement, statement)
 
-        self.assertEqual(statements[0].name.value, 'x')
-        self.assertEqual(statements[1].name.value, 'y')
-        self.assertEqual(statements[2].name.value, 'foo')
+            assert statement.name is not None
+
+            names.append(statement.name.value)
+
+        expected_names: List[str] = ['x', 'y', 'foo']
+
+        self.assertEqual(names, expected_names)
