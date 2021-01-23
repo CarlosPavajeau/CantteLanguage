@@ -15,12 +15,12 @@ class Lexer:
         self._skip_whitespace()
 
         if self._is_letter(self._character):
-            literal: str = self._read_identifier()
-            token_type = lookup_token_type(literal)
-            token = Token(token_type, literal)
+            ident_literal: str = self._read_identifier()
+            token_type = lookup_token_type(ident_literal)
+            token = Token(token_type, ident_literal)
         elif self._is_number(self._character):
-            literal: str = self._read_number()
-            token = Token(TokenType.INT, literal)
+            num_literal: str = self._read_number()
+            token = Token(TokenType.INT, num_literal)
         else:
             token_type = self._get_token_type()
             token = Token(token_type, self._character)
@@ -33,6 +33,12 @@ class Lexer:
             token_type = TokenType.ASSIGN
         elif match(r'^\+$', self._character):
             token_type = TokenType.PLUS
+        elif match(r'^-$', self._character):
+            token_type = TokenType.MINUS
+        elif match(r'^\*$', self._character):
+            token_type = TokenType.MULTIPLICATION
+        elif match(r'^/$', self._character):
+            token_type = TokenType.DIVISION
         elif match(r'^$', self._character):
             token_type = TokenType.EOF
         elif match(r'^\($', self._character):
@@ -47,6 +53,12 @@ class Lexer:
             token_type = TokenType.COMMA
         elif match(r'^;$', self._character):
             token_type = TokenType.SEMICOLON
+        elif match(r'^<$', self._character):
+            token_type = TokenType.LESS_THAN
+        elif match(r'^>$', self._character):
+            token_type = TokenType.GREATER_THAN
+        elif match(r'^!$', self._character):
+            token_type = TokenType.NEGATION
         else:
             token_type = TokenType.ILLEGAL
 
