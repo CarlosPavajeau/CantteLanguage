@@ -5,7 +5,8 @@ from enum import auto, Enum
 class ObjectType(Enum):
     BOOLEAN = auto(),
     INTEGER = auto(),
-    NULL = auto()
+    NULL = auto(),
+    RETURN = auto()
 
 
 class Object(ABC):
@@ -50,3 +51,15 @@ class Null(Object):
 
     def inspect(self) -> str:
         return 'null'
+
+
+class Return(Object):
+
+    def __init__(self, value: Object) -> None:
+        self.value = value
+
+    def type(self) -> ObjectType:
+        return ObjectType.RETURN
+
+    def inspect(self) -> str:
+        return self.value.inspect()

@@ -81,6 +81,27 @@ class EvaluatorTest(TestCase):
             else:
                 self._test_null_object(evaluated)
 
+    def test_return_evaluation(self) -> None:
+        tests: List[Tuple[str, int]] = [
+            ('return 10;', 10),
+            ('return 10; 9;', 10),
+            ('return 2 * 5; 9;', 10),
+            ('9; return 3 * 6; 9;', 18),
+            ('''
+                if (10 > 1) {
+                    if (20 > 10) {
+                        return 1;
+                    }
+                    
+                    return 0;
+                }
+            ''', 1),
+        ]
+
+        for source, expected in tests:
+            evaluated = self._evaluate_tests(source)
+            self._test_integer_object(evaluated, expected)
+
     def _test_null_object(self, evaluated: Object) -> None:
         self.assertEqual(evaluated, NULL)
 
