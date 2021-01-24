@@ -1,13 +1,28 @@
+from typing import List
+
+from cantte.ast import Program
 from cantte.lexer import Lexer
 from cantte.token import Token, TokenType
+from cantte.parser import Parser
 
 
 EOF_TOKEN: Token = Token(TokenType.EOF, '')
 
 
+def _print_parse_errors(erros: List[str]):
+    for error in erros:
+        print(error)
+
+
 def start_repl() -> None:
     while (source := input('>> ')) != 'exit()':
         lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
 
-        while (token := lexer.next_token()) != EOF_TOKEN:
-            print(token)
+        program: Program = parser.parse_program()
+
+        if len(parser.errors) > 0:
+            _print_parse_errors(parser.errors)
+            continue
+
+        print(program)
