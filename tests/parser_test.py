@@ -5,7 +5,7 @@ from cantte.lexer import Lexer
 from cantte.parser import Parser
 from cantte.ast import (Program, LetStatement, ReturnStatement,
                         ExpressionStatement, Expression, Identifier,
-                        Integer, Prefix, Infix)
+                        Integer, Prefix, Infix, Boolean)
 
 
 class ParserTest(TestCase):
@@ -156,6 +156,30 @@ class ParserTest(TestCase):
             self.assertIsInstance(statement.expression, Infix)
             self._test_infix_expression(statement.expression, expected_left, expected_operator, expected_right)
 
+    def test_boolean_expression(self) -> None:
+        source: str = 'true; false;'
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse_program()
+
+        self._test_program_statements(parser, program, expected_statements=2)
+
+        expected_values: List[bool] = [True, False]
+
+        for statement, expected_value in zip(program.statements, expected_values):
+            expression_statement = cast(ExpressionStatement, statement)
+
+            assert expression_statement.expression is not None
+
+            self._test_literal_expression(expression_statement.expression, expected_value)
+
+    def _test_boolean(self, expression: Expression, expected_value: bool) -> None:
+        boolean = cast(Boolean, expression)
+
+        self.assertEqual(boolean.value, expected_value)
+        self.assertEqual(boolean.token.literal, 'true' if expected_value else 'false')
+
     def _test_infix_expression(self, expression: Expression, expected_left: Any,
                                expected_operator: str, expected_right: Any):
         infix = cast(Infix, expression)
@@ -183,6 +207,8 @@ class ParserTest(TestCase):
             self._test_identifier(expression, expected_value)
         elif value_type == int:
             self._test_integer(expression, expected_value)
+        elif value_type == bool:
+            self._test_boolean(expression, expected_value)
         else:
             self.fail(f'Unhandled type of expression. Got={value_type}')
 

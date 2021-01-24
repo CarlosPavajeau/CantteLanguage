@@ -5,7 +5,7 @@ from cantte.token import Token, TokenType
 from cantte.lexer import Lexer
 from cantte.ast import (Program, Statement, LetStatement, Identifier,
                         ReturnStatement, Expression, ExpressionStatement,
-                        Integer, Prefix, Infix)
+                        Integer, Prefix, Infix, Boolean)
 
 PrefixParseFunc = Callable[[], Optional[Expression]]
 InfixParseFunc = Callable[[Expression], Optional[Expression]]
@@ -97,6 +97,11 @@ class Parser:
                 f'Was expected \'{token_type}\'.'
 
         self._errors.append(error)
+
+    def _parse_boolean(self) -> Boolean:
+        assert self._current_token is not None
+
+        return Boolean(token=self._current_token, value=self._current_token.token_type == TokenType.TRUE)
 
     def _parse_statement(self) -> Optional[Statement]:
         assert self._current_token is not None
@@ -241,6 +246,8 @@ class Parser:
 
     def _register_prefix_funcs(self) -> PrefixParseFuncs:
         return {
+            TokenType.FALSE: self._parse_boolean,
+            TokenType.TRUE: self._parse_boolean,
             TokenType.IDENTIFIER: self._parse_identifier,
             TokenType.INT: self._parse_integer,
             TokenType.MINUS: self._parse_prefix_expression,
