@@ -15,7 +15,12 @@ class EvaluatorTest(TestCase):
             ('5', 5),
             ('10', 10),
             ('-5', -5),
-            ('-10', -10)
+            ('-10', -10),
+            ('5 + 5', 10),
+            ('5 - 10', -5),
+            ('2 * 2 * 2 * 2', 16),
+            ('2 * 5 - 3', 7),
+            ('(2 + 7) / 3', 3)
         ]
 
         for source, expected in tests:
@@ -25,7 +30,19 @@ class EvaluatorTest(TestCase):
     def test_boolean_evaluation(self) -> None:
         tests: List[Tuple[str, bool]] = [
             ('true', True),
-            ('false', False)
+            ('false', False),
+            ('1 < 2', True),
+            ('1 > 2', False),
+            ('1 < 1', False),
+            ('1 > 1', False),
+            ('1 == 1', True),
+            ('1 != 1', False),
+            ('1 != 2', True),
+            ('true == true', True),
+            ('true == false', False),
+            ('false == false', True),
+            ('false == true', False),
+            ('(1 < 2) == true', True),
         ]
 
         for source, expected in tests:
@@ -45,8 +62,6 @@ class EvaluatorTest(TestCase):
         for source, expected in tests:
             evaluated = self._evaluate_tests(source)
             self._test_boolean_object(evaluated, expected)
-
-
 
     @staticmethod
     def _evaluate_tests(source: str) -> Object:
@@ -73,4 +88,3 @@ class EvaluatorTest(TestCase):
         evaluated = cast(Integer, evaluated)
 
         self.assertEqual(evaluated.value, expected)
-
