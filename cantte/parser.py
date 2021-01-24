@@ -6,7 +6,7 @@ from cantte.lexer import Lexer
 from cantte.ast import (Program, Statement, LetStatement, Identifier,
                         ReturnStatement, Expression, ExpressionStatement,
                         Integer, Prefix, Infix, Boolean,
-                        If, Block)
+                        If, Block, Function, Call)
 
 PrefixParseFunc = Callable[[], Optional[Expression]]
 InfixParseFunc = Callable[[Expression], Optional[Expression]]
@@ -33,6 +33,7 @@ PRECEDENCES: Dict[TokenType, Precedence] = {
     TokenType.MINUS: Precedence.SUM,
     TokenType.DIVISION: Precedence.PRODUCT,
     TokenType.MULTIPLICATION: Precedence.PRODUCT,
+    TokenType.LPAREN: Precedence.CALL,
 }
 
 
@@ -122,6 +123,39 @@ class Parser:
 
         return Boolean(token=self._current_token, value=self._current_token.token_type == TokenType.TRUE)
 
+    def _parse_call(self, function: Expression) -> Call:
+        assert self._current_token is not None
+
+        call = Call(self._current_token, function)
+        call.arguments = self._parse_call_arguments()
+
+        return call
+
+    def _parse_call_arguments(self) -> Optional[List[Expression]]:
+        arguments: List[Expression] = []
+
+        assert self._peek_token is not None
+
+        if self._peek_token.token_type == TokenType.RPAREN:
+            self._advance_tokens()
+            return arguments
+        self._advance_tokens()
+
+        if expression := self._parse_expression(Precedence.LOWEST):
+            arguments.append(expression)
+
+        while self._peek_token.token_type == TokenType.COMMA:
+            self._advance_tokens()
+            self._advance_tokens()
+
+            if expression := self._parse_expression(Precedence.LOWEST):
+                arguments.append(expression)
+
+        if not self._expected_token(TokenType.RPAREN):
+            return None
+
+        return arguments
+
     def _parse_statement(self) -> Optional[Statement]:
         assert self._current_token is not None
 
@@ -171,6 +205,46 @@ class Parser:
 
         return expression_statement
 
+    def _parse_function(self) -> Optional[Function]:
+        assert self._current_token is not None
+
+        function = Function(token=self._current_token)
+
+        if not self._expected_token(TokenType.LPAREN):
+            return None
+        function.parameters = self._parse_function_parameters()
+
+        if not self._expected_token(TokenType.LBRACE):
+            return None
+        function.body = self._parse_block()
+
+        return function
+
+    def _parse_function_parameters(self) -> List[Identifier]:
+        params: List[Identifier] = []
+
+        assert self._peek_token is not None
+
+        if self._peek_token.token_type == TokenType.RPAREN:
+            self._advance_tokens()
+            return params
+        self._advance_tokens()
+
+        identifier = self._parse_identifier()
+        params.append(identifier)
+
+        while self._peek_token.token_type == TokenType.COMMA:
+            self._advance_tokens()
+            self._advance_tokens()
+
+            identifier = self._parse_identifier()
+            params.append(identifier)
+
+        if not self._expected_token(TokenType.RPAREN):
+            return []
+
+        return params
+
     def _parse_grouped_expression(self) -> Optional[Expression]:
         self._advance_tokens()
 
@@ -205,7 +279,7 @@ class Parser:
         if_expression.consequence = self._parse_block()
 
         assert self._peek_token is not None
-        
+
         if self._peek_token.token_type == TokenType.ELSE:
             self._advance_tokens()
 
@@ -301,11 +375,13 @@ class Parser:
             TokenType.NOT_EQUAL: self._parse_infix_expression,
             TokenType.LESS_THAN: self._parse_infix_expression,
             TokenType.GREATER_THAN: self._parse_infix_expression,
+            TokenType.LPAREN: self._parse_call
         }
 
     def _register_prefix_funcs(self) -> PrefixParseFuncs:
         return {
             TokenType.FALSE: self._parse_boolean,
+            TokenType.FUNCTION: self._parse_function,
             TokenType.TRUE: self._parse_boolean,
             TokenType.IDENTIFIER: self._parse_identifier,
             TokenType.IF: self._parse_if,

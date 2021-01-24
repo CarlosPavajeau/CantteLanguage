@@ -5,7 +5,8 @@ from cantte.lexer import Lexer
 from cantte.parser import Parser
 from cantte.ast import (Program, LetStatement, ReturnStatement,
                         ExpressionStatement, Expression, Identifier,
-                        Integer, Prefix, Infix, Boolean, If, Block)
+                        Integer, Prefix, Infix, Boolean, If, Block, Function,
+                        Call)
 
 
 class ParserTest(TestCase):
@@ -195,6 +196,9 @@ class ParserTest(TestCase):
             ('(5 + 5) * 2;', '((5 + 5) * 2)', 1),
             ('2 / (5 + 5);', '(2 / (5 + 5))', 1),
             ('-(5 + 5);', '(-(5 + 5))', 1),
+            ('a + sum(b * c) + d;', '((a + sum((b * c))) + d)', 1),
+            ('sum(a, b, 1, 2* 3, 4 + 5, sum(6, 7 * 8));', 'sum(a, b, 1, (2 * 3), (4 + 5), sum(6, (7 * 8)))', 1),
+            ('sum(a + b + c * d / f + g);', 'sum((((a + b) + ((c * d) / f)) + g))', 1),
         ]
 
         for source, expected_result, expected_statement_count in test_sources:
@@ -206,6 +210,27 @@ class ParserTest(TestCase):
             self._test_program_statements(parser, program, expected_statements=expected_statement_count)
 
             self.assertEqual(str(program), expected_result)
+
+    def test_call_expression(self) -> None:
+        source: str = 'sum(1, 2 * 3, 4 + 5);'
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse_program()
+
+        self._test_program_statements(parser, program)
+
+        call = cast(Call, cast(ExpressionStatement, program.statements[0]).expression)
+
+        self.assertIsInstance(call, Call)
+        self._test_identifier(call.function, 'sum')
+
+        assert call.arguments is not None
+        self.assertEqual(len(call.arguments), 3)
+
+        self._test_literal_expression(call.arguments[0], 1)
+        self._test_infix_expression(call.arguments[1], 2, '*', 3)
+        self._test_infix_expression(call.arguments[2], 4, '+', 5)
 
     def test_if_expression(self) -> None:
         source: str = 'if (x < y) { z }'
@@ -246,7 +271,50 @@ class ParserTest(TestCase):
 
         assert if_expression.alternative is not None
         self._test_block(if_expression.alternative, 2, ['y', 'w'])
-        print(str(program))
+
+    def test_function_literal(self) -> None:
+        source: str = 'func(x, y) { x + y }'
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse_program()
+
+        self._test_program_statements(parser, program)
+
+        function_literal = cast(Function, cast(ExpressionStatement, program.statements[0]).expression)
+
+        self.assertIsInstance(function_literal, Function)
+        self.assertEqual(len(function_literal.parameters), 2)
+        self._test_literal_expression(function_literal.parameters[0], 'x')
+        self._test_literal_expression(function_literal.parameters[1], 'y')
+
+        assert function_literal.body is not None
+        self.assertEqual(len(function_literal.body.statements), 1)
+
+        body = cast(ExpressionStatement, function_literal.body.statements[0])
+
+        assert body.expression is not None
+        self._test_infix_expression(body.expression, 'x', '+', 'y')
+
+    def test_function_parameters(self) -> None:
+        test = [
+            {'input': 'func() {};', 'expected_params': []},
+            {'input': 'func(x) {};', 'expected_params': ['x']},
+            {'input': 'func(x, y, z) {};', 'expected_params': ['x', 'y', 'z']}
+        ]
+
+        for test in test:
+            lexer: Lexer = Lexer(test['input'])  # type: ignore
+            parser: Parser = Parser(lexer)
+
+            program: Program = parser.parse_program()
+
+            function = cast(Function, cast(ExpressionStatement, program.statements[0]).expression)
+
+            self.assertEqual(len(function.parameters), len(test['expected_params']))
+
+            for idx, param in enumerate(test['expected_params']):
+                self._test_literal_expression(function.parameters[idx], param)
 
     def _test_block(self, block: Block, statement_count: int, expected_identifiers: List[str]) -> None:
         self.assertIsInstance(block, Block)
