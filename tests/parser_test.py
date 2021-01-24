@@ -190,7 +190,11 @@ class ParserTest(TestCase):
             ('!false == true;', '((!false) == true)', 1),
             ('false != !false', '(false != (!false))', 1),
             ('1 > 10 == true;', '((1 > 10) == true)', 1),
-            ('a * b > b * c;', '((a * b) > (b * c))', 1)
+            ('a * b > b * c;', '((a * b) > (b * c))', 1),
+            ('1 + (2 + 3) + 4;', '((1 + (2 + 3)) + 4)', 1),
+            ('(5 + 5) * 2;', '((5 + 5) * 2)', 1),
+            ('2 / (5 + 5);', '(2 / (5 + 5))', 1),
+            ('-(5 + 5);', '(-(5 + 5))', 1),
         ]
 
         for source, expected_result, expected_statement_count in test_sources:
