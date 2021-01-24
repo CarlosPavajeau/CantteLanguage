@@ -4,6 +4,7 @@ from cantte.ast import Program
 from cantte.lexer import Lexer
 from cantte.token import Token, TokenType
 from cantte.parser import Parser
+from cantte.evaluator import evaluate
 
 
 EOF_TOKEN: Token = Token(TokenType.EOF, '')
@@ -25,4 +26,7 @@ def start_repl() -> None:
             _print_parse_errors(parser.errors)
             continue
 
-        print(program)
+        evaluated = evaluate(program)
+
+        if evaluated is not None:
+            print(evaluated.inspect())
