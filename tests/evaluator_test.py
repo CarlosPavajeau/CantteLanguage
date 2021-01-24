@@ -1,8 +1,8 @@
-from typing import cast, List, Tuple
+from typing import cast, List, Tuple, Any
 from unittest import TestCase
 
 from cantte.ast import Program
-from cantte.evaluator import evaluate
+from cantte.evaluator import evaluate, NULL
 from cantte.lexer import Lexer
 from cantte.object import Integer, Object, Boolean
 from cantte.parser import Parser
@@ -62,6 +62,27 @@ class EvaluatorTest(TestCase):
         for source, expected in tests:
             evaluated = self._evaluate_tests(source)
             self._test_boolean_object(evaluated, expected)
+
+    def test_if_else_evaluation(self) -> None:
+        tests: List[Tuple[str, Any]] = [
+            ('if (true) { 10 }', 10),
+            ('if (false) { 10 }', None),
+            ('if (1) { 10 }', 10),
+            ('if (1 < 2) { 10 }', 10),
+            ('if (1 < 2) { 10 } else { 20 }', 10),
+            ('if (1 > 2) { 10 } else { 20 }', 20),
+        ]
+
+        for source, expected in tests:
+            evaluated = self._evaluate_tests(source)
+
+            if type(expected) == int:
+                self._test_integer_object(evaluated, expected)
+            else:
+                self._test_null_object(evaluated)
+
+    def _test_null_object(self, evaluated: Object) -> None:
+        self.assertEqual(evaluated, NULL)
 
     @staticmethod
     def _evaluate_tests(source: str) -> Object:
