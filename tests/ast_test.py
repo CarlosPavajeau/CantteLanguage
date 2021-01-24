@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from cantte.ast import Identifier, LetStatement, Program, ReturnStatement
+from cantte.ast import Identifier, LetStatement, Program, ReturnStatement, ExpressionStatement, Integer
 from cantte.token import Token, TokenType
 
 
@@ -39,3 +39,18 @@ class ASTTest(TestCase):
         program_str = str(program)
 
         self.assertEqual(program_str, 'return num;')
+
+    def test_expression_statement(self) -> None:
+        program: Program = Program(statements=[
+            ExpressionStatement(
+                token=Token(TokenType.INT, literal='7'),
+                expression=Integer(
+                    token=Token(TokenType.INT, literal='7'),
+                    value=7
+                )
+            )
+        ])
+
+        program_str = str(program)
+
+        self.assertEqual(program_str, '7')
