@@ -5,7 +5,7 @@ from cantte.lexer import Lexer
 from cantte.parser import Parser
 from cantte.ast import (Program, LetStatement, ReturnStatement,
                         ExpressionStatement, Expression, Identifier,
-                        Integer, Prefix, Infix, Boolean)
+                        Integer, Prefix, Infix, Boolean, If, Block)
 
 
 class ParserTest(TestCase):
@@ -206,6 +206,59 @@ class ParserTest(TestCase):
             self._test_program_statements(parser, program, expected_statements=expected_statement_count)
 
             self.assertEqual(str(program), expected_result)
+
+    def test_if_expression(self) -> None:
+        source: str = 'if (x < y) { z }'
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse_program()
+
+        self._test_program_statements(parser, program)
+
+        if_expression = cast(If, cast(ExpressionStatement, program.statements[0]).expression)
+
+        self.assertIsInstance(if_expression, If)
+        assert if_expression.condition is not None
+
+        self._test_block(if_expression.consequence, 1, ['z'])
+
+        self.assertIsNone(if_expression.alternative)
+
+    def test_if_else_expression(self) -> None:
+        source: str = 'if (x < y) { z } else { y; w; }'
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse_program()
+
+        self._test_program_statements(parser, program)
+
+        if_expression = cast(If, cast(ExpressionStatement, program.statements[0]).expression)
+
+        self.assertIsInstance(if_expression, If)
+        assert if_expression.condition is not None
+
+        self._test_infix_expression(if_expression.condition, 'x', '<', 'y')
+
+        assert if_expression.consequence is not None
+        self._test_block(if_expression.consequence, 1, ['z'])
+
+        assert if_expression.alternative is not None
+        self._test_block(if_expression.alternative, 2, ['y', 'w'])
+        print(str(program))
+
+    def _test_block(self, block: Block, statement_count: int, expected_identifiers: List[str]) -> None:
+        self.assertIsInstance(block, Block)
+        self.assertEqual(len(block.statements), statement_count)
+        self.assertEqual(len(expected_identifiers), len(block.statements))
+
+        for statement, identifier in zip(block.statements, expected_identifiers):
+            statement = cast(ExpressionStatement, statement)
+
+            assert statement.expression is not None
+
+            self._test_identifier(statement.expression, identifier)
 
     def _test_boolean(self, expression: Expression, expected_value: bool) -> None:
         boolean = cast(Boolean, expression)
