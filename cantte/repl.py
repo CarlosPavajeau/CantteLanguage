@@ -9,8 +9,8 @@ from cantte.parser import Parser
 EOF_TOKEN: Token = Token(TokenType.EOF, '')
 
 
-def _print_parse_errors(erros: List[str]):
-    for error in erros:
+def _print_parse_errors(errors: List[str]):
+    for error in errors:
         print(error)
 
 
