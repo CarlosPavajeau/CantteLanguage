@@ -1,7 +1,8 @@
 from typing import Any, cast, List, Optional, Type
 import cantte.ast as ast
 from cantte.object import (Integer, Object, Boolean,
-                           Null, ObjectType, Return, Error)
+                           Null, ObjectType, Return, Error,
+                           Environment)
 
 TRUE = Boolean(True)
 FALSE = Boolean(False)
@@ -10,21 +11,22 @@ NULL = Null()
 _TYPE_MISMATCH = 'Type mismatch: {} {} {}'
 _UNKNOWN_PREFIX_OPERATOR = 'Unknown operator: {}{}'
 _UNKNOWN_INFIX_OPERATOR = 'Unknown operator: {} {} {}'
+_UNKNOWN_IDENTIFIER = 'Unknown identifier: {}'
 
 
-def evaluate(node: ast.ASTNode) -> Optional[Object]:
+def evaluate(node: ast.ASTNode, env: Environment) -> Optional[Object]:
     node_type: Type = type(node)
 
     if node_type == ast.Program:
         node = cast(ast.Program, node)
 
-        return _evaluate_program(node)
+        return _evaluate_program(node, env)
     elif node_type == ast.ExpressionStatement:
         node = cast(ast.ExpressionStatement, node)
 
         assert node.expression is not None
 
-        return evaluate(node.expression)
+        return evaluate(node.expression, env)
     elif node_type == ast.Integer:
         node = cast(ast.Integer, node)
 
@@ -42,7 +44,7 @@ def evaluate(node: ast.ASTNode) -> Optional[Object]:
 
         assert node.right is not None
 
-        right = evaluate(node.right)
+        right = evaluate(node.right, env)
 
         assert right is not None
 
@@ -53,8 +55,8 @@ def evaluate(node: ast.ASTNode) -> Optional[Object]:
 
         assert node.left is not None and node.right is not None
 
-        left = evaluate(node.left)
-        right = evaluate(node.right)
+        left = evaluate(node.left, env)
+        right = evaluate(node.right, env)
 
         assert right is not None and left is not None
 
@@ -63,30 +65,45 @@ def evaluate(node: ast.ASTNode) -> Optional[Object]:
     elif node_type == ast.Block:
         node = cast(ast.Block, node)
 
-        return _evaluate_block_statement(node)
+        return _evaluate_block_statement(node, env)
     elif node_type == ast.If:
         node = cast(ast.If, node)
 
-        return _evaluate_if_expression(node)
+        return _evaluate_if_expression(node, env)
     elif node_type == ast.ReturnStatement:
         node = cast(ast.ReturnStatement, node)
 
         assert node.return_value is not None
 
-        value = evaluate(node.return_value)
+        value = evaluate(node.return_value, env)
 
         assert value is not None
 
         return Return(value)
+    elif node_type == ast.LetStatement:
+        node = cast(ast.LetStatement, node)
+
+        assert node.value is not None
+
+        value = evaluate(node.value, env)
+
+        assert node.name is not None
+
+        env[node.name.value] = value
+
+    elif node_type == ast.Identifier:
+        node = cast(ast.Identifier, node)
+
+        return _evaluate_identifier(node, env)
 
     return None
 
 
-def _evaluate_block_statement(block: ast.Block) -> Optional[Object]:
+def _evaluate_block_statement(block: ast.Block, env: Environment) -> Optional[Object]:
     result: Optional[Object] = None
 
     for statement in block.statements:
-        result = evaluate(statement)
+        result = evaluate(statement, env)
 
         if result is not None and \
                 result.type() == ObjectType.RETURN or result.type() == ObjectType.ERROR:
@@ -95,19 +112,19 @@ def _evaluate_block_statement(block: ast.Block) -> Optional[Object]:
     return result
 
 
-def _evaluate_if_expression(if_expression: ast.If) -> Optional[Object]:
+def _evaluate_if_expression(if_expression: ast.If, env: Environment) -> Optional[Object]:
     assert if_expression.condition is not None
 
-    condition = evaluate(if_expression.condition)
+    condition = evaluate(if_expression.condition, env)
 
     assert condition is not None
 
     if _is_truthy(condition):
         assert if_expression.consequence is not None
 
-        return evaluate(if_expression.consequence)
+        return evaluate(if_expression.consequence, env)
     elif if_expression.alternative is not None:
-        return evaluate(if_expression.alternative)
+        return evaluate(if_expression.alternative, env)
     else:
         return NULL
 
@@ -121,6 +138,13 @@ def _is_truthy(obj: Object) -> bool:
         return False
     else:
         return True
+
+
+def _evaluate_identifier(node: ast.Identifier, env: Environment) -> Object:
+    try:
+        return env[node.value]
+    except KeyError:
+        return _new_error(_UNKNOWN_IDENTIFIER, [node.value])
 
 
 def _evaluate_infix_expression(operator: str, left: Object, right: Object) -> Object:
@@ -190,14 +214,15 @@ def _evaluate_minus_operator_expression(right: Object) -> Object:
     return Integer(-right.value)
 
 
-def _evaluate_program(program: ast.Program) -> Optional[Object]:
+def _evaluate_program(program: ast.Program, env: Environment) -> Optional[Object]:
     result: Optional[Object] = None
 
     for statement in program.statements:
-        result = evaluate(statement)
+        result = evaluate(statement, env)
 
         if type(result) == Return:
             result = cast(Return, result)
+
             return result.value
         elif type(result) == Error:
             return result

@@ -1,3 +1,4 @@
+from typing import Dict
 from abc import ABC, abstractmethod
 from enum import auto, Enum
 
@@ -76,3 +77,19 @@ class Error(Object):
 
     def inspect(self) -> str:
         return f'Error: {self.message}'
+
+
+class Environment(Dict):
+
+    def __init__(self):
+        super().__init__()
+        self._store = dict()
+
+    def __getitem__(self, item):
+        return self._store[item]
+
+    def __setitem__(self, key, value):
+        self._store[key] = value
+
+    def __delitem__(self, key):
+        del self._store[key]
