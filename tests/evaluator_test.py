@@ -4,7 +4,7 @@ from unittest import TestCase
 from cantte.ast import Program
 from cantte.evaluator import evaluate, NULL
 from cantte.lexer import Lexer
-from cantte.object import Integer, Object, Boolean
+from cantte.object import Integer, Object, Boolean, Error
 from cantte.parser import Parser
 
 
@@ -101,6 +101,40 @@ class EvaluatorTest(TestCase):
         for source, expected in tests:
             evaluated = self._evaluate_tests(source)
             self._test_integer_object(evaluated, expected)
+
+    def test_error_handling(self) -> None:
+        tests: List[Tuple[str, str]] = [
+            ('5 + true', 'Type mismatch: INTEGER + BOOLEAN'),
+            ('5 + true; 9;', 'Type mismatch: INTEGER + BOOLEAN'),
+            ('-true', 'Unknown operator: -BOOLEAN'),
+            ('false + true', 'Unknown operator: BOOLEAN + BOOLEAN'),
+            ('false - true; 10;', 'Unknown operator: BOOLEAN - BOOLEAN'),
+            ('''
+                if (10 > 7) {
+                    return true + false;
+                }
+            ''', 'Unknown operator: BOOLEAN + BOOLEAN'),
+            ('''
+                if (10 > 7) {
+                    return true + false;
+                }
+            ''', 'Unknown operator: BOOLEAN * BOOLEAN'),
+            ('''
+                if (10 > 7) {
+                    return true / false;
+                }
+            ''', 'Unknown operator: BOOLEAN /'
+                 ' BOOLEAN'),
+        ]
+
+        for source, expected in tests:
+            evaluated = self._evaluate_tests(source)
+
+            self.assertIsInstance(evaluated, Error)
+
+            evaluated = cast(Error, evaluated)
+
+            self.assertEqual(evaluated.message, expected)
 
     def _test_null_object(self, evaluated: Object) -> None:
         self.assertEqual(evaluated, NULL)
