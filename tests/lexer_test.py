@@ -210,3 +210,26 @@ class LexerTest(TestCase):
         ]
 
         self.assertEqual(tokens, expected_tokens)
+
+    def test_string(self) -> None:
+        source: str = '''
+            "foo";
+            "This is a string";
+            'Other string';
+        '''
+        lexer: Lexer = Lexer(source)
+
+        tokens: List[Token] = []
+        for i in range(6):
+            tokens.append(lexer.next_token())
+
+        expected_tokens: List[Token] = [
+            Token(TokenType.STRING, 'foo'),
+            Token(TokenType.SEMICOLON, ';'),
+            Token(TokenType.STRING, 'This is a string'),
+            Token(TokenType.SEMICOLON, ';'),
+            Token(TokenType.STRING, 'Other string'),
+            Token(TokenType.SEMICOLON, ';'),
+        ]
+
+        self.assertEqual(tokens, expected_tokens)

@@ -4,6 +4,7 @@ from enum import auto, Enum
 
 from cantte.ast import Block, Identifier
 
+
 class ObjectType(Enum):
     BOOLEAN = auto()
     ERROR = auto()
@@ -11,6 +12,7 @@ class ObjectType(Enum):
     INTEGER = auto()
     NULL = auto()
     RETURN = auto()
+    STRING = auto()
 
 
 class Object(ABC):
@@ -117,3 +119,15 @@ class Function(Object):
         params: str = ', '.join([str(param) for param in self.parameters])
 
         return f'func({params} {{\n{str(self.body)}\n}}'
+
+
+class String(Object):
+
+    def __init__(self, value: str) -> None:
+        self.value = value
+
+    def type(self) -> ObjectType:
+        return ObjectType.STRING
+
+    def inspect(self) -> str:
+        return self.value

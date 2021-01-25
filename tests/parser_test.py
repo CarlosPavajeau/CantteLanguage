@@ -6,7 +6,7 @@ from cantte.parser import Parser
 from cantte.ast import (Program, LetStatement, ReturnStatement,
                         ExpressionStatement, Expression, Identifier,
                         Integer, Prefix, Infix, Boolean, If, Block, Function,
-                        Call)
+                        Call, StringLiteral)
 
 
 class ParserTest(TestCase):
@@ -341,6 +341,19 @@ class ParserTest(TestCase):
 
             for idx, param in enumerate(test['expected_params']):
                 self._test_literal_expression(function.parameters[idx], param)
+
+    def test_string_literal_expression(self) -> None:
+        source: str = '"Hello!"'
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse_program()
+
+        expression_statement = cast(ExpressionStatement, program.statements[0])
+        string_literal = cast(StringLiteral, expression_statement.expression)
+
+        self.assertIsInstance(string_literal, StringLiteral)
+        self.assertEqual(string_literal.value, "Hello!")
 
     def _test_block(self, block: Block, statement_count: int, expected_identifiers: List[str]) -> None:
         self.assertIsInstance(block, Block)

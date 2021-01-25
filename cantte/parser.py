@@ -6,7 +6,7 @@ from cantte.lexer import Lexer
 from cantte.ast import (Program, Statement, LetStatement, Identifier,
                         ReturnStatement, Expression, ExpressionStatement,
                         Integer, Prefix, Infix, Boolean,
-                        If, Block, Function, Call)
+                        If, Block, Function, Call, StringLiteral)
 
 PrefixParseFunc = Callable[[], Optional[Expression]]
 InfixParseFunc = Callable[[Expression], Optional[Expression]]
@@ -348,6 +348,10 @@ class Parser:
 
         return prefix_expression
 
+    def _parse_string_literal(self) -> Expression:
+        assert self._current_token is not None
+        return StringLiteral(self._current_token, self._current_token.literal)
+
     def _parse_return_statement(self) -> Optional[ReturnStatement]:
         assert self._current_token is not None
         return_statement = ReturnStatement(token=self._current_token)
@@ -394,4 +398,5 @@ class Parser:
             TokenType.LPAREN: self._parse_grouped_expression,
             TokenType.MINUS: self._parse_prefix_expression,
             TokenType.NEGATION: self._parse_prefix_expression,
+            TokenType.STRING: self._parse_string_literal
         }

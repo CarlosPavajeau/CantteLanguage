@@ -25,6 +25,10 @@ class Lexer:
             token_type = self._get_token_type()
             if token_type == TokenType.EQUAL or token_type == TokenType.NOT_EQUAL:
                 token = self._make_two_character_token(token_type)
+            elif token_type == TokenType.STRING:
+                literal = self._read_string()
+
+                token = Token(token_type, literal)
             else:
                 token = Token(token_type, self._character)
             self._read_character()
@@ -68,6 +72,8 @@ class Lexer:
                 token_type = TokenType.NOT_EQUAL
             else:
                 token_type = TokenType.NEGATION
+        elif match(r"^\"|'$", self._character):
+            token_type = TokenType.STRING
         else:
             token_type = TokenType.ILLEGAL
 
@@ -117,6 +123,20 @@ class Lexer:
             self._read_character()
 
         return self._source[initial_position:self._position]
+
+    def _read_string(self) -> str:
+        quote_type = self._character
+
+        self._read_character()
+
+        initial_position = self._position
+        while (self._character != quote_type) \
+                and self._read_position <= len(self._source):
+            self._read_character()
+
+        string = self._source[initial_position:self._position]
+
+        return string
 
     def _skip_whitespace(self) -> None:
         while match(r'^\s$', self._character):
