@@ -2,7 +2,8 @@ from typing import Any, cast, List, Optional, Type
 import cantte.ast as ast
 from cantte.object import (Integer, Object, Boolean,
                            Null, ObjectType, Return, Error,
-                           Environment, Function, String)
+                           Environment, Function, String, Builtin)
+from cantte.buildtins import BUILTINS
 
 TRUE = Boolean(True)
 FALSE = Boolean(False)
@@ -124,16 +125,20 @@ def evaluate(node: ast.ASTNode, env: Environment) -> Optional[Object]:
 
 
 def _apply_function(function: Object, args: List[Object]) -> Object:
-    if type(function) != Function:
+    if type(function) == Function:
+        function = cast(Function, function)
+        extended_environment = _extent_function_environment(function, args)
+        evaluated = evaluate(function.body, extended_environment)
+
+        assert evaluated is not None
+
+        return _unwrap_return_value(evaluated)
+    elif type(function) == Builtin:
+        function = cast(Builtin, function)
+
+        return function.function(*args)
+    else:
         return _new_error(_NOT_A_FUNCTION, [function.type().name])
-
-    function = cast(Function, function)
-    extended_environment = _extent_function_environment(function, args)
-    evaluated = evaluate(function.body, extended_environment)
-
-    assert evaluated is not None
-
-    return _unwrap_return_value(evaluated)
 
 
 def _extent_function_environment(function: Function, args: List[Object]) -> Environment:
@@ -202,7 +207,7 @@ def _evaluate_identifier(node: ast.Identifier, env: Environment) -> Object:
     try:
         return env[node.value]
     except KeyError:
-        return _new_error(_UNKNOWN_IDENTIFIER, [node.value])
+        return BUILTINS.get(node.value, _new_error(_UNKNOWN_IDENTIFIER, [node.value]))
 
 
 def _evaluate_infix_expression(operator: str, left: Object, right: Object) -> Object:

@@ -1,4 +1,4 @@
-from typing import cast, List, Tuple, Any
+from typing import cast, List, Tuple, Any, Union
 from unittest import TestCase
 
 from cantte.ast import Program
@@ -242,6 +242,32 @@ class EvaluatorTest(TestCase):
             evaluated = self._evaluate_tests(source)
 
             self._test_boolean_object(evaluated, expected)
+
+    def test_builtin_functions(self) -> None:
+        tests: List[Tuple[str, Union[str, int]]] = [
+            ('size("");', 0),
+            ('size("four");', 4),
+            ('size("Hello world");', 11),
+            ('size(1);', 'Argument of type \'INTEGER\' is not supported'),
+            ('size("one", "two");', 'Wrong number of arguments. 2 received, 1 expected'),
+        ]
+
+        for source, expected in tests:
+            evaluated = self._evaluate_tests(source)
+
+            if type(expected) == int:
+                expected = cast(int, expected)
+                self._test_integer_object(evaluated, expected)
+            else:
+                expected = cast(str, expected)
+                self._test_error_object(evaluated, expected)
+
+    def _test_error_object(self, evaluated: Object, expected: str) -> None:
+        self.assertIsInstance(evaluated, Error)
+
+        evaluated = cast(Error, evaluated)
+
+        self.assertEqual(evaluated.message, expected)
 
     def _test_string_object(self, evaluated: Object, expected: str) -> None:
         self.assertIsInstance(evaluated, String)

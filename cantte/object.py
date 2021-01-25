@@ -1,12 +1,14 @@
 from typing import Dict, List
 from abc import ABC, abstractmethod
 from enum import auto, Enum
+from typing_extensions import Protocol
 
 from cantte.ast import Block, Identifier
 
 
 class ObjectType(Enum):
     BOOLEAN = auto()
+    BUILTIN = auto()
     ERROR = auto()
     FUNCTION = auto()
     INTEGER = auto()
@@ -131,3 +133,20 @@ class String(Object):
 
     def inspect(self) -> str:
         return self.value
+
+
+class BuiltinFunction(Protocol):
+
+    def __call__(self, *args: Object) -> Object: ...
+
+
+class Builtin(Object):
+
+    def __init__(self, function: BuiltinFunction):
+        self.function = function
+
+    def type(self) -> ObjectType:
+        return ObjectType.BUILTIN
+
+    def inspect(self) -> str:
+        return 'builtin function'
