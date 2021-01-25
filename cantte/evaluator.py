@@ -2,12 +2,13 @@ from typing import Any, cast, List, Optional, Type
 import cantte.ast as ast
 from cantte.object import (Integer, Object, Boolean,
                            Null, ObjectType, Return, Error,
-                           Environment)
+                           Environment, Function)
 
 TRUE = Boolean(True)
 FALSE = Boolean(False)
 NULL = Null()
 
+_NOT_A_FUNCTION = 'Not function: {}'
 _TYPE_MISMATCH = 'Type mismatch: {} {} {}'
 _UNKNOWN_PREFIX_OPERATOR = 'Unknown operator: {}{}'
 _UNKNOWN_INFIX_OPERATOR = 'Unknown operator: {} {} {}'
@@ -96,7 +97,48 @@ def evaluate(node: ast.ASTNode, env: Environment) -> Optional[Object]:
 
         return _evaluate_identifier(node, env)
 
+    elif node_type == ast.Function:
+        node = cast(ast.Function, node)
+
+        assert node.body is not None
+
+        return Function(node.parameters, node.body, env)
+
+    elif node_type == ast.Call:
+        node = cast(ast.Call, node)
+        function = evaluate(node.function, env)
+
+        assert node.arguments is not None
+
+        args = _evaluate_expression(node.arguments, env)
+
+        assert function is not None
+
+        return _apply_function(function, args)
+
     return None
+
+
+def _apply_function(function: Object, args: List[Object]) -> Object:
+    if type(function) != Function:
+        return _new_error(_NOT_A_FUNCTION, [function.type().name])
+
+    function = cast(Function, function)
+    extended_environment = _extent_function_environment(function, args)
+    evaluated = evaluate(function.body, extended_environment)
+
+    assert evaluated is not None
+
+    return _unwrap_return_value(evaluated)
+
+
+def _extent_function_environment(function: Function, args: List[Object]) -> Environment:
+    env = Environment(outer=function.env)
+
+    for idx, param in enumerate(function.parameters):
+        env[param.value] = args[idx - 1]
+
+    return env
 
 
 def _evaluate_block_statement(block: ast.Block, env: Environment) -> Optional[Object]:
@@ -108,6 +150,18 @@ def _evaluate_block_statement(block: ast.Block, env: Environment) -> Optional[Ob
         if result is not None and \
                 result.type() == ObjectType.RETURN or result.type() == ObjectType.ERROR:
             return result
+
+    return result
+
+
+def _evaluate_expression(expressions: List[ast.Expression], env: Environment) -> List[Object]:
+    result: List[Object] = []
+
+    for expression in expressions:
+        evaluated = evaluate(expression, env)
+
+        assert evaluated is not None
+        result.append(evaluated)
 
     return result
 
@@ -236,3 +290,10 @@ def _new_error(message: str, args: List[Any]) -> Error:
 
 def _to_boolean_object(value: bool) -> Boolean:
     return TRUE if value else FALSE
+
+
+def _unwrap_return_value(obj: Object) -> Object:
+    if type(obj) == Return:
+        obj = cast(Return, obj)
+        return obj.value
+    return obj

@@ -4,7 +4,7 @@ from unittest import TestCase
 from cantte.ast import Program
 from cantte.evaluator import evaluate, NULL
 from cantte.lexer import Lexer
-from cantte.object import Integer, Object, Boolean, Error, Environment
+from cantte.object import Integer, Object, Boolean, Error, Environment, Function
 from cantte.parser import Parser
 
 
@@ -147,6 +147,54 @@ class EvaluatorTest(TestCase):
 
         for source, expected in tests:
             evaluated = self._evaluate_tests(source)
+            self._test_integer_object(evaluated, expected)
+
+    def test_function_evaluation(self) -> None:
+        source: str = 'func(x) { x + 2; };'
+
+        evaluated = self._evaluate_tests(source)
+
+        self.assertIsInstance(evaluated, Function)
+
+        evaluated = cast(Function, evaluated)
+
+        self.assertEqual(len(evaluated.parameters), 1)
+        self.assertEqual(str(evaluated.parameters[0]), 'x')
+        self.assertEqual(str(evaluated.body), '(x + 2)')
+
+    def test_function_calls(self) -> None:
+        tests: List[Tuple[str, int]] = [
+            ('let ident = func(x) { x }; ident(5);', 5),
+            ('''
+                let ident = func(x) {
+                    return x;
+                }
+                ident(5);
+            ''', 5),
+            ('''
+                let double = func(x) {
+                    return 2 * x;
+                }
+                double(5);
+            ''', 10),
+            ('''
+                let sum = func(x, y) {
+                    return x + y;
+                }
+                sum(3, 8);
+            ''', 11),
+            ('''
+                let sum = func(x, y) {
+                    return x + y;
+                }
+                sum(5 + 5, sum(10, 10));
+            ''', 30),
+            ('func(x) { x }(5)', 5),
+        ]
+
+        for source, expected in tests:
+            evaluated = self._evaluate_tests(source)
+
             self._test_integer_object(evaluated, expected)
 
     def _test_null_object(self, evaluated: Object) -> None:

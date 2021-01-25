@@ -1,11 +1,13 @@
-from typing import Dict
+from typing import Dict, List
 from abc import ABC, abstractmethod
 from enum import auto, Enum
 
+from cantte.ast import Block, Identifier
 
 class ObjectType(Enum):
     BOOLEAN = auto()
     ERROR = auto()
+    FUNCTION = auto()
     INTEGER = auto()
     NULL = auto()
     RETURN = auto()
@@ -81,15 +83,37 @@ class Error(Object):
 
 class Environment(Dict):
 
-    def __init__(self):
+    def __init__(self, outer=None):
         super().__init__()
         self._store = dict()
+        self._outer = outer
 
     def __getitem__(self, item):
-        return self._store[item]
+        try:
+            return self._store[item]
+        except KeyError as e:
+            if self._outer is not None:
+                return self._outer[item]
+            raise e
 
     def __setitem__(self, key, value):
         self._store[key] = value
 
     def __delitem__(self, key):
         del self._store[key]
+
+
+class Function(Object):
+
+    def __init__(self, parameters: List[Identifier], body: Block, env: Environment) -> None:
+        self.parameters = parameters
+        self.body = body
+        self.env = env
+
+    def type(self) -> ObjectType:
+        return ObjectType.FUNCTION
+
+    def inspect(self) -> str:
+        params: str = ', '.join([str(param) for param in self.parameters])
+
+        return f'func({params} {{\n{str(self.body)}\n}}'
